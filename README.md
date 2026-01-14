@@ -29,7 +29,7 @@ Herramienta web interactiva para estudiantes de Ingeniería en Sistemas de Infor
 1. Ve a Settings > Pages en tu repositorio
 2. Seleccioná la rama `main` como source
 3. Guardá los cambios
-4. Tu sitio estará disponible en: `https://miltonrojo.github.io/correlativassistemas/`
+4. Tu sitio estará disponible en: `https://[tu-usuario].github.io/correlativassistemas/`
 
 #### Netlify
 
