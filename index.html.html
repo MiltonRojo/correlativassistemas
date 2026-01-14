@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora Académica Ingeniería - Plan 2023</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+        .tab-btn { transition: all 0.3s ease; }
+        
+        /* Estados de fila */
+        .row-libre { background-color: rgba(239, 68, 68, 0.15); border-left: 4px solid #ef4444; }
+        .row-regular { background-color: rgba(148, 163, 184, 0.1); border-left: 4px solid #94a3b8; }
+        .row-aprobada { background-color: rgba(59, 130, 246, 0.05); opacity: 0.8; }
+        
+        .row-active { 
+            background-color: rgba(59, 130, 246, 0.2) !important; 
+            transform: scale(1.005);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            z-index: 10;
+            position: relative;
+            font-weight: bold;
+        }
+
+        .input-anio-new { background-color: white !important; color: black !important; font-weight: bold; }
+        
+        .warning-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            background-color: #ef4444;
+            color: white;
+            border-radius: 50%;
+            font-size: 12px;
+            font-weight: bold;
+            animation: pulse 1.5s infinite;
+        }
+
+        .error-cross {
+            color: #ef4444;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { transform: scale(1.2); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen">
+
+    <header class="p-6 bg-blue-800 shadow-2xl text-center">
+        <h1 class="text-3xl font-extrabold uppercase tracking-widest text-white">INGENIERÍA EN SISTEMAS DE INFORMACIÓN: RÉGIMEN DE CORRELATIVAS PLAN 2023 </h1>
+        <p class="text-blue-100 mt-2 italic text-sm">Validación oficial según Régimen de Correlativas</p>
+    </header>
+
+    <main class="container mx-auto p-4 md:p-8">
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <div class="bg-slate-800 rounded-xl p-6 border border-blue-500/30 shadow-lg">
+                <h2 class="text-blue-400 font-bold mb-4 flex items-center gap-2">
+                    <span class="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">1</span>
+                    Configuración de Perfil
+                </h2>
+                <div class="flex flex-col md:flex-row items-center gap-4">
+                    <label class="text-slate-100 font-medium">Año de ingreso:</label>
+                    <input type="number" id="anio-ingreso" 
+                        oninput="if(this.value.length > 4) this.value = this.value.slice(0,4);"
+                        onchange="setAnioIngreso(this.value)" 
+                        placeholder="Ej: 2022"
+                        class="input-anio-new border-2 border-blue-400 rounded-lg p-2 w-32 text-center outline-none focus:ring-4 focus:ring-blue-500/50">
+                    <p id="msg-espera" class="text-slate-400 text-xs italic font-medium">Ingrese su año para comenzar.</p>
+                </div>
+            </div>
+
+            <div id="herramientas-datos" class="bg-slate-800 rounded-xl p-6 border border-emerald-500/30 shadow-lg hidden">
+                <h2 class="text-emerald-400 font-bold mb-4 flex items-center gap-2">
+                    <span class="bg-emerald-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">2</span>
+                    Gestión de Archivos (.csv)
+                </h2>
+                <div class="flex gap-4">
+                    <button onclick="exportarCSV()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2">
+                        💾 Guardar
+                    </button>
+                    <label class="flex-1 bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer">
+                        📂 Abrir
+                        <input type="file" id="input-archivo" accept=".csv" class="hidden" onchange="importarCSV(this)">
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div id="controles-principales" class="hidden transition-all duration-500">
+            <div class="flex flex-wrap justify-center gap-2 mb-8">
+                <button onclick="changeTab('carga')" id="btn-carga" class="tab-btn px-6 py-3 rounded-full bg-blue-600 font-bold hover:bg-blue-500 text-white shadow-lg">1. Mi Situación Actual</button>
+                <button onclick="changeTab('analisis')" id="btn-analisis" class="tab-btn px-6 py-3 rounded-full bg-slate-700 font-bold hover:bg-blue-500 text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">2. ¿Qué puedo cursar?</button>
+            </div>
+            
+            <p id="error-nav" class="text-center text-red-400 text-sm mb-4 hidden font-bold bg-red-900/20 py-2 rounded-lg border border-red-500/50 mx-auto max-w-md">
+                ⚠️ Hay materias con datos incompletos (Condición, Año o Modalidad).
+            </p>
+
+            <section id="tab-carga" class="tab-content">
+                <div class="flex justify-end gap-2 mb-4">
+                    <button onclick="toggleAllNiveles(true)" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded border border-slate-500 text-white">Desplegar Todo</button>
+                    <button onclick="toggleAllNiveles(false)" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded border border-slate-500 text-white">Contraer Todo</button>
+                </div>
+                <div id="accordion-container" class="space-y-4"></div>
+            </section>
+
+            <section id="tab-analisis" class="tab-content hidden">
+                <input type="text" id="busqueda" onkeyup="renderAnalisis()" placeholder="Buscar materia (ej: logica, algebra, ingles)..." class="bg-slate-800 text-white border border-slate-700 p-4 rounded-lg w-full mb-6 outline-none focus:ring-2 focus:ring-blue-500">
+                <div id="grid-analisis" class="space-y-12"></div>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        let anioIngresoAlumno = 0;
+        let nivelesAbiertos = {1:true, 2:false, 3:false, 4:false, 5:false};
+        let activeRowId = null;
+
+        const materiasBase = [
+            // NIVEL 1
+            { id: 1, nivel: 1, nombre: "Análisis Matemático I", modPlan: "A", corrR: [], corrA: [] },
+            { id: 2, nivel: 1, nombre: "Algebra y Geometría Analítica", modPlan: "A", corrR: [], corrA: [] },
+            { id: 3, nivel: 1, nombre: "Física I", modPlan: "A", corrR: [], corrA: [] },
+            { id: 4, nivel: 1, nombre: "Inglés I", modPlan: "A", corrR: [], corrA: [] },
+            { id: 5, nivel: 1, nombre: "Lógica y Estructuras Discretas", modPlan: "1C-2C", corrR: [], corrA: [] },
+            { id: 6, nivel: 1, nombre: "Algoritmo y Estructura de Datos", modPlan: "A", corrR: [], corrA: [] },
+            { id: 7, nivel: 1, nombre: "Arquitectura de Computadoras", modPlan: "2C-1C", corrR: [], corrA: [] },
+            { id: 8, nivel: 1, nombre: "Sistemas y Proceso de Negocios", modPlan: "1C-2C", corrR: [], corrA: [] },
+            { id: 11, nivel: 1, nombre: "Ingeniería y Sociedad", modPlan: "2C-1C", corrR: [], corrA: [] },
+            // NIVEL 2
+            { id: 9, nivel: 2, nombre: "Análisis Matemático II", modPlan: "A", corrR: [1, 2], corrA: [] },
+            { id: 10, nivel: 2, nombre: "Física II", modPlan: "A", corrR: [1, 3], corrA: [] },
+            { id: 12, nivel: 2, nombre: "Inglés II", modPlan: "A", corrR: [4], corrA: [] },
+            { id: 13, nivel: 2, nombre: "Sintaxis y Semántica de los Lenguajes", modPlan: "1C-2C", corrR: [5, 6], corrA: [] },
+            { id: 14, nivel: 2, nombre: "Paradigmas de Programación", modPlan: "1C-2C", corrR: [5, 6], corrA: [] },
+            { id: 15, nivel: 2, nombre: "Sistemas Operativos", modPlan: "A", corrR: [7], corrA: [] },
+            { id: 16, nivel: 2, nombre: "Análisis de Sistemas de Información", modPlan: "A", corrR: [6, 8], corrA: [] },
+            { id: 17, nivel: 2, nombre: "Probabilidad y Estadística", modPlan: "1C-2C", corrR: [1, 2], corrA: [] },
+            // NIVEL 3
+            { id: 18, nivel: 3, nombre: "Economía", modPlan: "2C-1C", corrR: [], corrA: [1, 2] },
+            { id: 19, nivel: 3, nombre: "Base de Datos", modPlan: "1C-2C", corrR: [13, 16], corrA: [5, 6] },
+            { id: 20, nivel: 3, nombre: "Desarrollo de Software", modPlan: "1C-2C", corrR: [14, 16], corrA: [5, 6] },
+            { id: 21, nivel: 3, nombre: "Comunicación de Datos", modPlan: "A", corrR: [], corrA: [3, 7] },
+            { id: 22, nivel: 3, nombre: "Análisis Numérico", modPlan: "2C-1C", corrR: [9], corrA: [1, 2] },
+            { id: 23, nivel: 3, nombre: "Diseño de Sistemas de Información", modPlan: "A", corrR: [14, 16], corrA: [4, 6, 8] },
+            { id: 99, nivel: 3, nombre: "Seminario Integrador (Analista)", modPlan: "2C", corrR: [16], corrA: [6, 8, 13, 14] },
+            { id: 701, nivel: 3, nombre: "ELEC: Backend de Aplicaciones", modPlan: "2C", corrR: [14, 13], corrA: [6] },
+            { id: 706, nivel: 3, nombre: "ELEC: Desarrollo de Aplicaciones Con Objetos", modPlan: "2C", corrR: [13], corrA: [6] },
+            // NIVEL 4
+            { id: 24, nivel: 4, nombre: "Legislación", modPlan: "2C-1C", corrR: [11], corrA: [] },
+            { id: 25, nivel: 4, nombre: "Ingeniería y Calidad de Software", modPlan: "2C-1C", corrR: [19, 20, 23], corrA: [13, 14] },
+            { id: 26, nivel: 4, nombre: "Redes de Datos", modPlan: "A", corrR: [15, 21], corrA: [] },
+            { id: 27, nivel: 4, nombre: "Investigación Operativa", modPlan: "A", corrR: [17, 22], corrA: [] },
+            { id: 28, nivel: 4, nombre: "Simulación", modPlan: "1C-2C", corrR: [17], corrA: [9] },
+            { id: 29, nivel: 4, nombre: "Tecnologías Para Automatización", modPlan: "2C-1C", corrR: [10, 22], corrA: [9] },
+            { id: 30, nivel: 4, nombre: "Adm. de Sistemas de Información", modPlan: "A", corrR: [18, 23], corrA: [16] },
+            { id: 702, nivel: 4, nombre: "ELEC: Green Software", modPlan: "1C-2C", corrR: [20, 19], corrA: [14, 13] },
+            { id: 703, nivel: 4, nombre: "ELEC: Gestión Industrial Producción", modPlan: "1C", corrR: [19], corrA: [8, 16] },
+            { id: 704, nivel: 4, nombre: "ELEC: Gestión Mejora Procesos", modPlan: "1C", corrR: [19], corrA: [8, 16] },
+            { id: 705, nivel: 4, nombre: "ELEC: DevOPS", modPlan: "1C", corrR: [19, 20], corrA: [14, 13] },
+            { id: 707, nivel: 4, nombre: "ELEC: Comunicación Multimedial", modPlan: "2C", corrR: [19], corrA: [8, 16] },
+            { id: 708, nivel: 4, nombre: "ELEC: Arquitectura de Software", modPlan: "1C", corrR: [19, 20], corrA: [14, 13] },
+            { id: 718, nivel: 4, nombre: "ELEC: Integración App Web", modPlan: "2C", corrR: [26, 19], corrA: [19, 20] },
+            // NIVEL 5
+            { id: 31, nivel: 5, nombre: "Inteligencia Artificial", modPlan: "2C-1C", corrR: [28], corrA: [17, 22] },
+            { id: 32, nivel: 5, nombre: "Ciencia de Datos", modPlan: "2C-1C", corrR: [28], corrA: [17, 19] },
+            { id: 33, nivel: 5, nombre: "Sistemas de Gestión", modPlan: "1C-2C", corrR: [18, 27], corrA: [23] },
+            { id: 34, nivel: 5, nombre: "Gestión Gerencial", modPlan: "1C-2C", corrR: [24, 30], corrA: [18] },
+            { id: 35, nivel: 5, nombre: "Seguridad en los Sistemas", modPlan: "1C-2C", corrR: [26, 30], corrA: [20, 21] },
+            { id: 36, nivel: 5, nombre: "Proyecto Final", modPlan: "A", corrR: [25, 26, 30], corrA: [12, 20, 23] },
+            { id: 709, nivel: 5, nombre: "ELEC: Blockchain", modPlan: "1C", corrR: [26, 19], corrA: [14, 20] },
+            { id: 710, nivel: 5, nombre: "ELEC: Creatividad e Innovación", modPlan: "1C-2C", corrR: [30], corrA: [20] },
+            { id: 711, nivel: 5, nombre: "ELEC: Auditorías de Si/Ti", modPlan: "1C", corrR: [30], corrA: [20] },
+            { id: 712, nivel: 5, nombre: "ELEC: Gerenciamiento Estratégico", modPlan: "1C", corrR: [30], corrA: [20] },
+            { id: 713, nivel: 5, nombre: "ELEC: Consultoría Negocios", modPlan: "1C", corrR: [30], corrA: [20] },
+            { id: 714, nivel: 5, nombre: "ELEC: Emprendimientos Tecnológicos", modPlan: "1C", corrR: [30], corrA: [16, 19] },
+            { id: 715, nivel: 5, nombre: "ELEC: Decisiones Escenarios", modPlan: "1C", corrR: [27], corrA: [19] },
+            { id: 716, nivel: 5, nombre: "ELEC: Testing de Software", modPlan: "2C", corrR: [25], corrA: [19, 20] },
+            { id: 717, nivel: 5, nombre: "ELEC: Seguridad en Desarrollo", modPlan: "2C", corrR: [26, 19], corrA: [20, 8] },
+            { id: 719, nivel: 5, nombre: "ELEC: Software Fuentes Abiertas", modPlan: "2C", corrR: [19, 20, 26], corrA: [13, 14] }
+        ];
+
+        let materias = materiasBase.map(m => ({ ...m, condicion: "sin_cursar", año: "", modReal: "", advertir: false }));
+
+        // FUNCIÓN CLAVE: Normaliza el texto para búsquedas (quita acentos y pasa a minúsculas)
+        function normalizarTexto(texto) {
+            return texto.toLowerCase()
+                        .normalize("NFD")
+                        .replace(/[\u0300-\u036f]/g, "");
+        }
+
+        function setAnioIngreso(valor, skipRender = false) {
+            anioIngresoAlumno = parseInt(valor);
+            const msg = document.getElementById('msg-espera');
+            const controles = document.getElementById('controles-principales');
+            const herramientas = document.getElementById('herramientas-datos');
+            
+            if (anioIngresoAlumno >= 2008 && anioIngresoAlumno <= 2099) {
+                controles.classList.remove('hidden');
+                herramientas.classList.remove('hidden');
+                msg.classList.add('hidden');
+                document.getElementById('anio-ingreso').value = anioIngresoAlumno;
+                if(!skipRender) renderCarga();
+            } else {
+                if (valor !== "" && !skipRender) {
+                    alert("Ingrese un año entre 2008 y 2099.");
+                    document.getElementById('anio-ingreso').value = "";
+                }
+                controles.classList.add('hidden');
+                herramientas.classList.add('hidden');
+                msg.classList.remove('hidden');
+            }
+        }
+
+        function highlightRow(id) {
+            if (activeRowId !== id) {
+                activeRowId = id;
+                renderCarga();
+            }
+        }
+
+        function handleRowBlur(mId) {
+            setTimeout(() => {
+                const filaActiva = document.getElementById(`row-${mId}`);
+                if (filaActiva && !filaActiva.contains(document.activeElement)) {
+                    validarFila(mId);
+                }
+            }, 10);
+        }
+
+        function validarFila(id) {
+            const m = materias.find(x => x.id == id);
+            const haTocadoAlgo = (m.condicion !== 'sin_cursar' || m.año !== "" || m.modReal !== "");
+            const estaIncompleto = (m.condicion === 'sin_cursar' || m.año === "" || m.modReal === "");
+
+            m.advertir = (haTocadoAlgo && estaIncompleto);
+            checkGlobalErrors();
+            renderCarga();
+        }
+
+        function validateAnioInput(el, id) {
+            let val = el.value.replace(/[^0-9]/g, '');
+            if (val.length > 2) val = val.slice(0, 2);
+            el.value = val;
+            
+            const m = materias.find(x => x.id == id);
+            if (val.length === 2) {
+                let fullAnio = parseInt("20" + val);
+                if (fullAnio < anioIngresoAlumno) {
+                    alert(`El año (${fullAnio}) no puede ser previo al ingreso (${anioIngresoAlumno})`);
+                    el.value = "";
+                    m.año = "";
+                } else {
+                    m.año = fullAnio.toString();
+                }
+            } else {
+                m.año = "";
+            }
+        }
+
+        function updateMateria(id, campo, valor) {
+            const m = materias.find(x => x.id == id);
+            m[campo] = valor;
+            validarFila(id);
+        }
+
+        function checkGlobalErrors() {
+            const tieneIncompletas = materias.some(m => m.advertir === true);
+            const btn = document.getElementById('btn-analisis');
+            const errorMsg = document.getElementById('error-nav');
+            btn.disabled = tieneIncompletas;
+            tieneIncompletas ? errorMsg.classList.remove('hidden') : errorMsg.classList.add('hidden');
+        }
+
+        function changeTab(tab) {
+            if(tab === 'analisis' && document.getElementById('btn-analisis').disabled) {
+                alert("Corrija las materias marcadas con (!) antes de continuar.");
+                return;
+            }
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+            document.getElementById('tab-' + tab).classList.remove('hidden');
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.replace('bg-blue-600', 'bg-slate-700'));
+            document.getElementById('btn-' + tab).classList.replace('bg-slate-700', 'bg-blue-600');
+            if(tab === 'analisis') renderAnalisis();
+        }
+
+        function toggleNivel(n) {
+            nivelesAbiertos[n] = !nivelesAbiertos[n];
+            renderCarga();
+        }
+
+        function toggleAllNiveles(open) {
+            for(let i=1; i<=5; i++) nivelesAbiertos[i] = open;
+            renderCarga();
+        }
+
+        function renderCarga() {
+            const container = document.getElementById('accordion-container');
+            let html = "";
+
+            for(let n=1; n<=5; n++) {
+                const materiasNivel = materias.filter(m => m.nivel === n);
+                const isOpen = nivelesAbiertos[n];
+                
+                html += `
+                <div class="bg-slate-800 rounded-xl overflow-hidden border border-slate-700 shadow-lg">
+                    <button onclick="toggleNivel(${n})" class="w-full p-4 flex justify-between items-center bg-slate-700/50 hover:bg-slate-700 transition-colors">
+                        <span class="font-bold text-lg text-blue-400">${n}° AÑO</span>
+                        <span class="text-xl">${isOpen ? '▲' : '▼'}</span>
+                    </button>
+                    <div class="${isOpen ? 'block' : 'hidden'} overflow-x-auto p-4">
+                        <table class="w-full text-left text-sm border-separate border-spacing-y-1">
+                            <thead>
+                                <tr class="text-slate-400">
+                                    <th class="p-2">Materia</th>
+                                    <th class="p-2 w-32">Condición</th>
+                                    <th class="p-2 w-24 text-center">Año</th>
+                                    <th class="p-2 w-32">Modalidad</th>
+                                    <th class="p-2 w-12 text-center">Validación</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${materiasNivel.map(m => {
+                                    const estaCompletoTotal = (m.condicion !== 'sin_cursar' && m.año !== "" && m.modReal !== "");
+                                    let rowClass = m.condicion === 'libre' ? 'row-libre' : (m.condicion === 'regular' ? 'row-regular' : (m.condicion === 'aprobada' ? 'row-aprobada' : ''));
+                                    if(m.id === activeRowId) rowClass += ' row-active';
+
+                                    return `
+                                    <tr id="row-${m.id}" class="${rowClass} transition-all" onclick="highlightRow(${m.id})" onfocusout="handleRowBlur(${m.id})">
+                                        <td class="p-2 font-medium">${m.nombre}</td>
+                                        <td class="p-2">
+                                            <select onchange="updateMateria(${m.id}, 'condicion', this.value)" class="bg-slate-900 border border-slate-600 rounded p-1 text-xs w-full text-white">
+                                                <option value="sin_cursar" ${m.condicion == 'sin_cursar' ? 'selected' : ''}>Seleccionar...</option>
+                                                <option value="regular" ${m.condicion == 'regular' ? 'selected' : ''}>Regular</option>
+                                                <option value="aprobada" ${m.condicion == 'aprobada' ? 'selected' : ''}>Aprobada</option>
+                                                <option value="libre" ${m.condicion == 'libre' ? 'selected' : ''}>Libre</option>
+                                            </select>
+                                        </td>
+                                        <td class="p-2">
+                                            <div class="flex items-center justify-center">
+                                                <span class="text-white mr-1 text-xs font-bold">20</span>
+                                                <input type="number" value="${m.año ? m.año.slice(-2) : ''}" 
+                                                    oninput="validateAnioInput(this, ${m.id})"
+                                                    class="input-anio-new w-10 text-center rounded text-xs p-1 outline-none" placeholder="00">
+                                            </div>
+                                        </td>
+                                        <td class="p-2">
+                                            <select onchange="updateMateria(${m.id}, 'modReal', this.value)" class="bg-slate-900 border border-slate-600 rounded p-1 text-xs w-full text-white">
+                                                <option value="" ${m.modReal == '' ? 'selected' : ''}>Seleccionar...</option>
+                                                <option value="1C" ${m.modReal == '1C' ? 'selected' : ''}>1° Cuat</option>
+                                                <option value="2C" ${m.modReal == '2C' ? 'selected' : ''}>2° Cuat</option>
+                                                <option value="A" ${m.modReal == 'A' ? 'selected' : ''}>Anual</option>
+                                                <option value="I" ${m.modReal == 'I' ? 'selected' : ''}>Intensivo</option>
+                                            </select>
+                                        </td>
+                                        <td class="p-2 text-center">
+                                            ${m.advertir ? '<span class="warning-icon" title="Faltan datos de cursada">!</span>' : 
+                                             (m.condicion === 'libre' ? '<span class="error-cross" title="Materia Libre">✖</span>' : 
+                                             (estaCompletoTotal ? '✅' : ''))}
+                                        </td>
+                                    </tr>`;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>`;
+            }
+            container.innerHTML = html;
+        }
+
+        function checkCorrelativa(m) {
+            let errores = [];
+            m.corrR.forEach(reqId => {
+                const req = materias.find(x => x.id == reqId);
+                if (req.condicion !== 'regular' && req.condicion !== 'aprobada') errores.push(`Req. ${req.nombre} REGULAR`);
+            });
+            m.corrA.forEach(reqId => {
+                const req = materias.find(x => x.id == reqId);
+                if (req.condicion !== 'aprobada') errores.push(`Req. ${req.nombre} APROBADA`);
+            });
+            return errores;
+        }
+
+        function renderAnalisis() {
+            // NORMALIZACIÓN DE BÚSQUEDA: Se limpia la entrada del usuario
+            const busquedaRaw = document.getElementById('busqueda').value;
+            const busquedaNorm = normalizarTexto(busquedaRaw);
+            
+            const container = document.getElementById('grid-analisis');
+            let htmlFinal = "";
+
+            for(let n=1; n<=5; n++) {
+                // COMPARACIÓN NORMALIZADA: Se normaliza el nombre de la materia para comparar
+                const materiasNivel = materias.filter(m => {
+                    const nombreNorm = normalizarTexto(m.nombre);
+                    return m.nivel == n && nombreNorm.includes(busquedaNorm);
+                });
+
+                if (materiasNivel.length > 0) {
+                    htmlFinal += `
+                    <div class="mb-10">
+                        <h2 class="text-2xl font-black text-blue-500 mb-4 flex items-center gap-4 uppercase">
+                            ${n}° AÑO
+                            <div class="h-px bg-slate-700 flex-1"></div>
+                        </h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            ${materiasNivel.map(m => cardTemplate(m)).join('')}
+                        </div>
+                    </div>`;
+                }
+            }
+            container.innerHTML = htmlFinal || "<p class='text-center text-slate-500'>No hay materias que coincidan.</p>";
+        }
+
+        function cardTemplate(m) {
+            const errores = checkCorrelativa(m);
+            const apta = errores.length === 0;
+            const esAprobada = m.condicion === 'aprobada';
+            const esElectiva = m.id >= 700;
+
+            return `
+                <div class="p-5 rounded-xl border-2 transition-all ${esAprobada ? 'bg-blue-900/30 border-blue-500/50 opacity-70' : (apta ? 'bg-green-900/20 border-green-500' : 'bg-red-900/20 border-red-500')}">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-[10px] uppercase font-bold ${esElectiva ? 'text-amber-400' : 'text-blue-300'}">${esElectiva ? 'Materia Electiva' : m.nivel + '° Año'}</span>
+                        <span class="px-2 py-1 rounded text-[10px] font-bold text-white ${apta ? 'bg-green-600' : 'bg-red-600'}">
+                            ${apta ? 'APTA' : 'BLOQUEADA'}
+                        </span>
+                    </div>
+                    <h3 class="font-bold text-lg text-white leading-tight">${m.nombre}</h3>
+                    <div class="mt-4">
+                        ${!apta ? `<ul class="text-xs text-red-200 list-disc pl-4 space-y-1">${errores.map(e => `<li>${e}</li>`).join('')}</ul>` : 
+                        (esAprobada ? '<p class="text-xs text-blue-300 font-bold italic">✓ Aprobada</p>' : '<p class="text-xs text-green-300 font-bold italic">✓ Correlativas cumplidas</p>')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- FUNCIONES DE IMPORTACIÓN / EXPORTACIÓN ---
+
+        function exportarCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "ID,Nombre,Condicion,Anio,Modalidad Real,Anio Ingreso Alumno\n";
+
+            materias.forEach(m => {
+                let row = `${m.id},"${m.nombre}",${m.condicion},${m.año},${m.modReal},${anioIngresoAlumno}`;
+                csvContent += row + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `plan_estudios_${anioIngresoAlumno}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function importarCSV(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const rows = text.split("\n");
+                
+                for (let i = 1; i < rows.length; i++) {
+                    if (rows[i].trim() === "") continue;
+                    
+                    const columns = rows[i].split(",");
+                    const id = parseInt(columns[0]);
+                    const condicion = columns[2];
+                    const anioMateria = columns[3];
+                    const modReal = columns[4];
+                    const anioIngresoCSV = columns[5];
+
+                    if (i === 1 && anioIngresoCSV) {
+                        setAnioIngreso(anioIngresoCSV, true);
+                    }
+
+                    const m = materias.find(x => x.id === id);
+                    if (m) {
+                        m.condicion = condicion || "sin_cursar";
+                        m.año = anioMateria || "";
+                        m.modReal = modReal || "";
+                        m.advertir = false;
+                    }
+                }
+                
+                alert("Plan cargado correctamente.");
+                input.value = ""; 
+                renderCarga();
+                checkGlobalErrors();
+            };
+            reader.readAsText(file);
+        }
+
+        renderCarga();
+    </script>
+</body>
+</html>
