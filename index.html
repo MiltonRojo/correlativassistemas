@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Correlativas - Sistemas de Información UTN</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📚 Sistema de Correlativas</h1>
+            <p class="subtitle">Ingeniería en Sistemas de Información - UTN</p>
+        </header>
+
+        <div class="main-content">
+            <section class="info-panel">
+                <h2>ℹ️ ¿Qué son las correlativas?</h2>
+                <p>Las correlativas son las materias que debés tener aprobadas para poder cursar otra materia. 
+                   Esta herramienta te ayuda a visualizar qué materias podés cursar según tu progreso académico.</p>
+            </section>
+
+            <section class="controls">
+                <div class="nivel-selector">
+                    <label>Filtrar por nivel:</label>
+                    <select id="nivelFilter">
+                        <option value="todos">Todos los niveles</option>
+                        <option value="1">Nivel 1</option>
+                        <option value="2">Nivel 2</option>
+                        <option value="3">Nivel 3</option>
+                        <option value="4">Nivel 4</option>
+                        <option value="5">Nivel 5</option>
+                    </select>
+                </div>
+                <div class="actions">
+                    <button id="clearAll" class="btn btn-secondary">Limpiar Selección</button>
+                    <button id="selectAll" class="btn btn-secondary">Seleccionar Todas</button>
+                </div>
+            </section>
+
+            <section class="materias-section">
+                <h2>Seleccioná las materias que tenés aprobadas</h2>
+                <div id="materiasContainer" class="materias-grid"></div>
+            </section>
+
+            <section class="resultados-section">
+                <h2>📊 Resultados</h2>
+                <div class="stats">
+                    <div class="stat-card">
+                        <span class="stat-number" id="materiasAprobadas">0</span>
+                        <span class="stat-label">Materias Aprobadas</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-number" id="materiasPosibles">0</span>
+                        <span class="stat-label">Podés Cursar</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-number" id="materiasBloqueadas">0</span>
+                        <span class="stat-label">Bloqueadas</span>
+                    </div>
+                </div>
+
+                <div class="resultados-details">
+                    <div class="resultado-group">
+                        <h3>✅ Podés cursar estas materias:</h3>
+                        <div id="materiasPosiblesLista" class="materias-lista"></div>
+                    </div>
+                    <div class="resultado-group">
+                        <h3>🔒 Materias bloqueadas (te faltan correlativas):</h3>
+                        <div id="materiasBloqueadasLista" class="materias-lista"></div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <footer>
+            <p>Herramienta educativa para estudiantes de Ingeniería en Sistemas - UTN</p>
+            <p class="disclaimer">⚠️ Verificá siempre la información en la normativa oficial de tu facultad</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
